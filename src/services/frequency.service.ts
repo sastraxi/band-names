@@ -4,6 +4,9 @@ import * as readline from 'readline';
 import * as path from 'path';
 import axios from 'axios';
 import * as zlib from 'zlib';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { WordFrequency } from '../entities/word-frequency.entity';
 
 const DATASET_NAME = 'googlebooks-eng-all-1gram-20120701-a';
 
@@ -12,7 +15,11 @@ export class WordFrequencyService {
   private readonly logger = new Logger(WordFrequencyService.name);
   private readonly datasetPath = path.join(__dirname, '..', '..', 'data', DATASET_NAME);
   private readonly datasetUrl = `http://storage.googleapis.com/books/ngrams/books/${DATASET_NAME}.gz`;
-  private wordFrequency: Map<string, number> = new Map();
+
+  constructor(
+    @InjectRepository(WordFrequency)
+    private wordFrequencyRepository: Repository<WordFrequency>
+  ) {}
 
   async downloadDataset(): Promise<void> {
     const dataDir = path.dirname(this.datasetPath);
@@ -66,20 +73,20 @@ export class WordFrequencyService {
       const [word, , count] = line.split('\t');
       const frequency = parseInt(count, 10);
       if (this.isValidWord(word) && frequency >= minFrequency) {
-        const currentCount = this.wordFrequency.get(word) || 0;
-        this.wordFrequency.set(word, currentCount + frequency);
+        await this.wordFrequencyRepository.save({ word, frequency });
       }
     }
   }
 
-  private isValidWord(word: string): boolean {
-    return /^[a-zA-Z]+$/.test(word);
+  private async getTopWords(limit: number): Promise<string[]> {
+    const topWords = await this.wordFrequencyRepository.find({
+      order: { frequency: 'DESC' },
+      take: limit,
+    });
+    return topWords.map(({ word }) => word);
   }
 
-  private getTopWords(limit: number): string[] {
-    const sortedWords = Array.from(this.wordFrequency.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, limit);
-    return sortedWords.map(([word]) => word);
+  private isValidWord(word: string): boolean {
+    return /^[a-zA-Z]+$/.test(word);
   }
 }

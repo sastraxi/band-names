@@ -1,0 +1,23 @@
+# Use Node.js 14 as the base image
+FROM node:14
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Set the working directory
+WORKDIR /usr/src/app
+
+# Copy package.json and pnpm-lock.yaml (if available)
+COPY package.json pnpm-lock.yaml* ./
+
+# Install dependencies
+RUN pnpm install
+
+# Copy the rest of the application code
+COPY . .
+
+# Expose the port the app runs on
+EXPOSE 3000
+
+# Start the application in development mode with hot-reloading
+CMD ["pnpm", "run", "start:dev"]

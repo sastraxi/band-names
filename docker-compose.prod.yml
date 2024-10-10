@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  postgres:
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  nestjs_app:
+    build:
+      dockerfile: Dockerfile.prod
+    environment:
+      NODE_ENV: production
+    volumes:
+      - /usr/src/app/node_modules
+
+volumes:
+  postgres_data:
