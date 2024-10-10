@@ -73,7 +73,12 @@ export class WordFrequencyService {
       const [word, , count] = line.split('\t');
       const frequency = parseInt(count, 10);
       if (this.isValidWord(word) && frequency >= minFrequency) {
-        await this.wordFrequencyRepository.save({ word, frequency });
+        await this.wordFrequencyRepository.createQueryBuilder()
+          .insert()
+          .into(WordFrequency)
+          .values({ word, frequency })
+          .orUpdate(['frequency'], ['word'])
+          .execute();
       }
     }
   }

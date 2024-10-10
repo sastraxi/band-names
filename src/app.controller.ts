@@ -15,7 +15,6 @@ export class AppController {
   async getMostFrequentWords(
     @Query('limit', new DefaultValuePipe(1000), ParseIntPipe) limit: number
   ): Promise<string[]> {
-    this.wordFrequencyService.downloadDataset();
     return this.wordFrequencyService.computeMostFrequentWords(limit);
   }
 
@@ -23,6 +22,7 @@ export class AppController {
   async processDataset(
     @Query('minFrequency', new DefaultValuePipe(100), ParseIntPipe) minFrequency: number
   ): Promise<string> {
+    await this.wordFrequencyService.downloadDataset();
     await this.wordFrequencyService.processDataset(minFrequency);
     return 'Dataset processed successfully';
   }

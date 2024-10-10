@@ -19,7 +19,7 @@ import { WordFrequency } from './entities/word-frequency.entity';
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_NAME'),
         entities: [WordFrequency],
-        synchronize: true, // Set to false in production
+        synchronize: process.env.NODE_ENV !== 'production',
       }),
       inject: [ConfigService],
     }),
