@@ -6,6 +6,7 @@ services:
       - postgres_data_dev:/var/lib/postgresql/data
 
   nestjs_app:
+    entrypoint: ["echo", "Service disabled"]
     build:
       dockerfile: Dockerfile.dev
     ports:

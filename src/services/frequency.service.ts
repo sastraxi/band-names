@@ -10,6 +10,8 @@ import { WordFrequency } from '../entities/word-frequency.entity';
 
 const DATASET_NAME = 'googlebooks-eng-all-1gram-20120701-a';
 
+// https://storage.googleapis.com/books/ngrams/books/datasetsv3.html
+
 @Injectable()
 export class WordFrequencyService {
   private readonly logger = new Logger(WordFrequencyService.name);
@@ -61,7 +63,7 @@ export class WordFrequencyService {
     return this.getTopWords(limit);
   }
 
-  async processDataset(minFrequency: number = 100): Promise<void> {
+  async processDataset(minFrequency: number = 100, maxNewEntries: number = 1000, batchSize: number = 50): Promise<void> {
     const fileStream = fs.createReadStream(this.datasetPath);
     const gunzip = zlib.createGunzip();
     const rl = readline.createInterface({
@@ -69,18 +71,43 @@ export class WordFrequencyService {
       crlfDelay: Infinity,
     });
 
+    let newEntriesCount = 0;
+    const wordFrequencies: { [key: string]: number } = {};
+
     for await (const line of rl) {
       const [word, , count] = line.split('\t');
       const frequency = parseInt(count, 10);
-      if (this.isValidWord(word) && frequency >= minFrequency) {
-        await this.wordFrequencyRepository.createQueryBuilder()
-          .insert()
-          .into(WordFrequency)
-          .values({ word, frequency })
-          .orUpdate(['frequency'], ['word'])
-          .execute();
+
+      if (this.isValidWord(word)) {
+        const lowercaseWord = word.toLowerCase();
+        console.log(lowercaseWord);
+        if (lowercaseWord in wordFrequencies) {
+          wordFrequencies[lowercaseWord] += frequency;
+        } else {
+          wordFrequencies[lowercaseWord] = frequency;
+        }
+      }
+      
+      if (Object.keys(wordFrequencies).length >= maxNewEntries) {
+        break; // Stop processing if we've reached maxNewEntries
       }
     }
+
+    // Process accumulated word frequencies in batches
+    const entries = Object.entries(wordFrequencies)
+      .filter(([, totalFrequency]) => totalFrequency >= minFrequency);
+
+    for (let i = 0; i < entries.length; i += batchSize) {
+      const batch = entries.slice(i, i + batchSize);
+      await this.wordFrequencyRepository.upsert(
+        batch.map(([word, frequency]) => ({ word, frequency })),
+        { conflictPaths: ['word'] }
+      );
+      newEntriesCount += batch.length;
+      this.logger.log(`Processed batch ${i / batchSize + 1}. Total entries so far: ${newEntriesCount}`);
+    }
+
+    this.logger.log(`Processed dataset. Added or updated ${newEntriesCount} entries.`);
   }
 
   private async getTopWords(limit: number): Promise<string[]> {
