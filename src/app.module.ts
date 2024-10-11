@@ -7,6 +7,7 @@ import { WordFrequencyService } from './services/frequency.service';
 import { SpotifyService } from './services/spotify.service';
 import { WordFrequency } from './entities/word-frequency.entity';
 import { ProcessedFile } from './entities/processed-file.entity';
+import { Band } from './entities/band.entity';
 
 @Module({
   imports: [
@@ -20,12 +21,12 @@ import { ProcessedFile } from './entities/processed-file.entity';
         username: configService.get('DB_USERNAME'),
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_NAME'),
-        entities: [WordFrequency, ProcessedFile],
-        synchronize: process.env.NODE_ENV !== 'production',
+        entities: [WordFrequency, ProcessedFile, Band],
+        synchronize: false,
       }),
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([WordFrequency, ProcessedFile]),
+    TypeOrmModule.forFeature([WordFrequency, ProcessedFile, Band]),
   ],
   controllers: [AppController],
   providers: [AppService, WordFrequencyService, SpotifyService],

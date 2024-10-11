@@ -2,6 +2,7 @@ import { Controller, Get, Query, ParseIntPipe, DefaultValuePipe } from '@nestjs/
 import { AppService } from './app.service';
 import { WordFrequencyService } from './services/frequency.service';
 import { SpotifyService } from './services/spotify.service';
+import { Band } from './entities/band.entity';
 
 @Controller()
 export class AppController {
@@ -32,7 +33,7 @@ export class AppController {
   }
 
   @Get('band-info')
-  async getBandInfo(@Query('name') bandName: string) {
+  async getBandInfo(@Query('name') bandName: string): Promise<Band> {
     return this.spotifyService.getBandWithMostListeners(bandName);
   }
 }

@@ -1,6 +1,9 @@
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import axios from 'axios';
+import { Band } from '../entities/band.entity';
 
 @Injectable()
 export class SpotifyService {
@@ -8,7 +11,11 @@ export class SpotifyService {
   private accessToken: string;
   private tokenExpirationTime: number;
 
-  constructor(private configService: ConfigService) {}
+  constructor(
+    private configService: ConfigService,
+    @InjectRepository(Band)
+    private bandRepository: Repository<Band>
+  ) {}
 
   private async getAccessToken(): Promise<string> {
     if (this.accessToken && Date.now() < this.tokenExpirationTime) {
@@ -42,7 +49,7 @@ export class SpotifyService {
     }
   }
 
-  async getBandWithMostListeners(bandName: string): Promise<any> {
+  async getBandWithMostListeners(bandName: string): Promise<Band> {
     try {
       const accessToken = await this.getAccessToken();
       const response = await axios.get('https://api.spotify.com/v1/search', {
@@ -67,8 +74,28 @@ export class SpotifyService {
       // Sort by popularity (which is related to monthly listeners) in descending order
       artists.sort((a, b) => b.popularity - a.popularity);
 
-      // Return the most popular artist
-      return artists[0];
+      // Get the most popular artist
+      const mostPopularArtist = artists[0];
+
+      // Upsert the band in the database
+      const band = await this.bandRepository.findOne({ where: { name: mostPopularArtist.name } });
+      
+      if (band) {
+        // Update existing band
+        band.popularity = mostPopularArtist.popularity;
+        band.spotifyData = mostPopularArtist;
+        band.lastUpdated = new Date();
+        await this.bandRepository.save(band);
+        return band;
+      }
+      // Create new band
+      const newBand = this.bandRepository.create({
+        name: mostPopularArtist.name,
+        popularity: mostPopularArtist.popularity,
+        spotifyData: mostPopularArtist,
+      });
+      await this.bandRepository.save(newBand);
+      return newBand;
     } catch (error) {
       this.logger.error(`Failed to fetch band information for "${bandName}"`, error);
       throw new HttpException('Failed to fetch band information from Spotify', HttpStatus.INTERNAL_SERVER_ERROR);
