@@ -8,6 +8,8 @@ import { SpotifyService } from './services/spotify.service';
 import { WordFrequency } from './entities/word-frequency.entity';
 import { ProcessedFile } from './entities/processed-file.entity';
 import { Band } from './entities/band.entity';
+import { PotentialName } from './entities/potential-name.entity';
+import { PotentialNameService } from './services/potential-name.service';
 
 @Module({
   imports: [
@@ -21,15 +23,15 @@ import { Band } from './entities/band.entity';
         username: configService.get('DB_USERNAME'),
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_NAME'),
-        entities: [WordFrequency, ProcessedFile, Band],
+        entities: [WordFrequency, ProcessedFile, Band, PotentialName],
         synchronize: false,
       }),
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([WordFrequency, ProcessedFile, Band]),
+    TypeOrmModule.forFeature([WordFrequency, ProcessedFile, Band, PotentialName]),
   ],
   controllers: [AppController],
-  providers: [AppService, WordFrequencyService, SpotifyService],
-  exports: [WordFrequencyService, SpotifyService],
+  providers: [AppService, WordFrequencyService, SpotifyService, PotentialNameService],
+  exports: [WordFrequencyService, SpotifyService, PotentialNameService],
 })
 export class AppModule {}

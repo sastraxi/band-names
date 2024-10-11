@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm';
 
 @Entity()
 export class Band {
@@ -6,6 +6,7 @@ export class Band {
   id: number;
 
   @Column({ unique: true })
+  @Index('IDX_LOWER_BAND_NAME', { unique: true })
   name: string;
 
   @Column()

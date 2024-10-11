@@ -1,7 +1,7 @@
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import axios from 'axios';
 import { Band } from '../entities/band.entity';
 
@@ -49,12 +49,12 @@ export class SpotifyService {
     }
   }
 
-  async getBandWithMostListeners(bandName: string): Promise<Band> {
+  async getBandWithMostListeners(...bandNames: string[]): Promise<Band | null> {
     try {
       const accessToken = await this.getAccessToken();
       const response = await axios.get('https://api.spotify.com/v1/search', {
         params: {
-          q: bandName,
+          q: bandNames[0],
           type: 'artist',
           limit: 50 // Maximum allowed by Spotify API
         },
@@ -64,7 +64,7 @@ export class SpotifyService {
       });
 
       const artists = response.data.artists.items.filter(artist => 
-        artist.name.toLowerCase() === bandName.toLowerCase()
+        bandNames.some(name => name.toLowerCase() === artist.name.toLowerCase())
       );
 
       if (artists.length === 0) {
@@ -78,7 +78,11 @@ export class SpotifyService {
       const mostPopularArtist = artists[0];
 
       // Upsert the band in the database
-      const band = await this.bandRepository.findOne({ where: { name: mostPopularArtist.name } });
+      const band = await this.bandRepository.findOne({
+        where: { 
+          name: ILike(mostPopularArtist.name.trim())
+        }
+      });
       
       if (band) {
         // Update existing band
@@ -97,7 +101,7 @@ export class SpotifyService {
       await this.bandRepository.save(newBand);
       return newBand;
     } catch (error) {
-      this.logger.error(`Failed to fetch band information for "${bandName}"`, error);
+      this.logger.error(`Error fetching band data for "${name}": ${error.message}`, error.stack);
       throw new HttpException('Failed to fetch band information from Spotify', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }

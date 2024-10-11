@@ -100,7 +100,7 @@ export class WordFrequencyService {
           { conflictPaths: ['word'] }
         );
         newEntriesCount += batch.length;
-        this.logger.log(`Processed batch ${i / batchSize + 1} for ${filename}. Total entries so far: ${newEntriesCount}`);
+        this.logger.log(`Processed batch ${i / batchSize + 1} for ${filename} (+${newEntriesCount})`);
       }
 
       // Mark the file as processed
