@@ -4,7 +4,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { WordFrequencyService } from './services/frequency.service';
+import { SpotifyService } from './services/spotify.service';
 import { WordFrequency } from './entities/word-frequency.entity';
+import { ProcessedFile } from './entities/processed-file.entity';
 
 @Module({
   imports: [
@@ -18,15 +20,15 @@ import { WordFrequency } from './entities/word-frequency.entity';
         username: configService.get('DB_USERNAME'),
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_NAME'),
-        entities: [WordFrequency],
+        entities: [WordFrequency, ProcessedFile],
         synchronize: process.env.NODE_ENV !== 'production',
       }),
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([WordFrequency]),
+    TypeOrmModule.forFeature([WordFrequency, ProcessedFile]),
   ],
   controllers: [AppController],
-  providers: [AppService, WordFrequencyService],
-  exports: [WordFrequencyService],
+  providers: [AppService, WordFrequencyService, SpotifyService],
+  exports: [WordFrequencyService, SpotifyService],
 })
 export class AppModule {}
