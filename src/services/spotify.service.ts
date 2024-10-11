@@ -50,6 +50,7 @@ export class SpotifyService {
   }
 
   async getBandWithMostListeners(...bandNames: string[]): Promise<Band | null> {
+    let mostPopularArtist: { name: string, popularity: number } | undefined
     try {
       const accessToken = await this.getAccessToken();
       const response = await axios.get('https://api.spotify.com/v1/search', {
@@ -75,7 +76,7 @@ export class SpotifyService {
       artists.sort((a, b) => b.popularity - a.popularity);
 
       // Get the most popular artist
-      const mostPopularArtist = artists[0];
+      mostPopularArtist = artists[0];
 
       // Upsert the band in the database
       const band = await this.bandRepository.findOne({
@@ -101,7 +102,7 @@ export class SpotifyService {
       await this.bandRepository.save(newBand);
       return newBand;
     } catch (error) {
-      this.logger.error(`Error fetching band data for "${name}": ${error.message}`, error.stack);
+      this.logger.error(`Error fetching band data for "${mostPopularArtist?.name}": ${error.message}`, error.stack);
       throw new HttpException('Failed to fetch band information from Spotify', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
